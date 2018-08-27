@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>掌上建院-课表查询</title>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+    <link rel="stylesheet" href="../../../static/index/light7/dist/css/light7.min.css"/>
+    <style>
+        .schedule{
+            text-align: center;
+            font-size: 0.55rem;
+            height: 5rem;
+        }
+        .content-block table tr td,th{
+            text-align: center;
+            border: 1px solid #e7e7e7;
+            color: #3d4145;
+            font-family: "Helvetica Neue",Helvetica,sans-serif;
+        }
+        .schedule-content{
+            width: 12.5%;
+        }
+        .schedule-table{
+            width: 100%;
+            border : 1px solid #e7e7e7;
+            background: #ffffff;
+        }
+    </style>
+</head>
+<body class="page">
+<header class="bar bar-nav">
+    <h1 class="title" id="header-title">课表查询</h1>
+    <button class="button pull-right" onclick="change()">
+        …
+    </button>
+</header>
+<div class="content">
+    <div class="content-block" id="choose" style="margin: -1rem 0; display: none;">
+        <div class="list-block">
+            <ul>
+                <!-- Text inputs -->
+                <li>
+                    <div class="item-content">
+                        <div class="item-inner">
+                            <div class="item-title label">选择学期</div>
+                            <div class="item-input">
+                                <input type="text" placeholder="选择学期" id="picker" readonly="">
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="content-block" style="margin: 0.5rem -0.8rem">
+        <table class="schedule-table">
+            <tr>
+                <th class="schedule-content"></th>
+                <th class="schedule-content">周一</th>
+                <th class="schedule-content">周二</th>
+                <th class="schedule-content">周三</th>
+                <th class="schedule-content">周四</th>
+                <th class="schedule-content">周五</th>
+                <th class="schedule-content">周六</th>
+                <th class="schedule-content">周日</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+            </tr>
+            <tr>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+            </tr>
+            <tr>
+                <td>4</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+            </tr>
+            <tr>
+                <td>6</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+            </tr>
+            <tr>
+                <td>8</td>
+            </tr>
+        </table>
+    </div>
+</div>
+<script>
+    let url = 'selectSchedule';
+    let loginUrl = 'login'
+    let xn,xq,newxn,newxq
+    function login(fun) {
+        $.ajax({
+            type: 'get',
+            url: loginUrl,
+            success: function (response) {
+                if(response.code === 0){
+                    $.ajax({
+                        type: "post",
+                        url: url,
+                        success: function (response) {
+                            // console.log(response);
+                            if (response.code === 0) {
+                                banji = response.data.bj;
+                                xn = response.data.xn
+                                xn = xn + '学年'
+                                xq = response.data.xq
+                                if (xq === 1) {
+                                    xq = '第一学期'
+                                } else {
+                                    xq = '第二学期'
+                                }
+                                document.getElementById('header-title').innerHTML = banji + "の课程表";
+                                document.getElementById('picker').value = xn + " " + xq
+                                kbToHtml(response.data.data)
+                            }
+                        },
+                        error: function (error) {
+                            login();
+                        }
+                    })
+                } else {
+                    login();
+                }
+            },
+            error: function () {
+                login();
+            }
+        })
+    }
+    function getJwid () {
+        $.ajax({
+            type: "post",
+            url: 'getJwid',
+            success: function (response) {
+                console.log(response);
+                if (response.code === 0) {
+                    login()
+                    weeks()
+                } else {
+                    $.toast('尚未绑定，正在前往绑定页面');
+                    setTimeout(function () {
+                        window.location.href="bangding";
+                    },1000)
+                }
+            },
+            error: function (error) {
+                $.alert('请检查网络')
+            }
+        })
+    }
+    window.onload = function () {
+        getJwid();
+        $("#picker").picker({
+            toolbarTemplate: '<header class="bar bar-nav">\
+                                  <button class="button button-link pull-right close-picker" onclick="change()">确定</button>\
+                                  <h1 class="title">请选择学年学期</h1>\
+                                 </header>',
+            cols: [
+                {
+                    textAlign: 'center',
+                    values: ['2018-2019学年','2017-2018学年','2016-2017学年']
+                    //如果你希望显示文案和实际值不同，可以在这里加一个displayValues: [.....]
+                },
+                {
+                    textAlign: 'center',
+                    values: ['第一学期', '第二学期']
+                }
+            ]
+        })
+
+    }
+    function change() {
+        if(document.getElementById('choose').style.display != 'none' ){
+            let newdata = document.getElementById('picker').value;
+            newdata = newdata.split(' ');
+            newxn = newdata[0];
+            newxq = newdata[1];
+            if(newxn != xn || newxq != xq) {
+                newxn = newdata[0].split('学年')[0];
+                newxq = (newdata[1] === '第一学期' ? 1 : 2);
+                $.ajax({
+                    type: "get",
+                    url: url+'/xuenian/'+newxn+'/xueqi/'+newxq,
+                    success: function (response) {
+                        console.log(response);
+                        if (response.code === 0){
+                            banji = response.data.bj;
+                            xn = response.data.xn;
+                            xn = xn + '学年';
+                            xq = response.data.xq === 1 ? '第一学期' : '第二学期';
+                            document.getElementById('header-title').innerHTML = banji+"の课程表";
+                            document.getElementById('picker').value = xn+xq
+                            kbToHtml(response.data.data)
+                        } else {
+                            $.alert(response.msg)
+                        }
+                    },
+                    error: function (error) {
+                        $.alert(error);
+                    }
+                })
+            }
+            // document.getElementById('choose').style.display = 'none'
+            $("#choose").fadeOut("slow");
+        } else {
+            $("#choose").fadeIn("slow")
+        }
+    }
+    function kbToHtml(kb) {
+        let kbUseable = new Array();//源课程数据
+        let kbExplode = new Array();//一次处理数据
+        let kbResult = new Array();
+        kbUseable[0] = kb[2];
+        kbUseable[1] = kb[4];
+        kbUseable[2] = kb[6];
+        kbUseable[3] = kb[8];
+        kbUseable[0].splice(0,2);
+        kbUseable[1].splice(0,1);
+        kbUseable[2].splice(0,2);
+        kbUseable[3].splice(0,1);
+        // console.log(kbUseable);
+        for(let i=0;i<4;i++) {
+            kbExplode[i] = new Array();
+            for (let j=0;j<countArray(kbUseable[i]);j++) {
+                kbExplode[i][j] = kbUseable[i][j].split('<br/>');
+                if(kbExplode[i][j].length<6) {
+                    for(let k=kbExplode[i][j].length-1; k<6; k++) {
+                        kbExplode[i][j][k] = "";
+                    }
+                }
+            }
+        }
+        // console.log(kbExplode)
+       for (let i=0; i<4; i++) {
+            kbResult[i] = new Array();
+            for (let j=0; j<6; j++) {
+                kbResult[i][j] = new Array();
+                // console.log(kbExplode[i][j].len)
+                for (let k=0; k<(kbExplode[i][j].length)/6; k++) {
+                    kbResult[i][j][k] = new Array();
+                    kbResult[i][j][k]['course'] = kbExplode[i][j][k*6] ;
+                    kbResult[i][j][k]['type'] = kbExplode[i][j][6*k+1] ;
+                    kbResult[i][j][k]['week'] = kbExplode[i][j][6*k+2] ;
+                    kbResult[i][j][k]['teacher'] = kbExplode[i][j][6*k+3] ;
+                    kbResult[i][j][k]['room'] = kbExplode[i][j][6*k+4] ;
+                }
+            }
+       }
+       for (let i=0; i<4; i++) {
+            for(let j=0; j<6; j++) {
+                for (let k=0; k<(kbResult[i][j].length-1); k++) {
+                    if (kbResult[i][j][k]['course'] === kbResult[i][j][k+1]['course']) {
+                        kbResult[i][j][k]['teacher'] = kbResult[i][j][k]['teacher'] + '/' + kbResult[i][j][k+1]['teacher']
+                        kbResult[i][j].splice(k+1,1)
+                    }
+                }
+            }
+       } 
+       console.log(kbResult)
+        for (let i = 0;i<4; i++) {
+            for (let j=0;j<6; j++) {
+                document.getElementsByClassName('schedule')[j+i*7].innerHTML = "";
+                for (let k=0; k<kbResult[i][j].length; k++){
+                    // console.log(kbResult[i][j][k].course)
+                    document.getElementsByClassName('schedule')[j+i*7].innerHTML += (kbResult[i][j][k].course + '<br>');
+                    document.getElementsByClassName('schedule')[j+i*7].innerHTML += (kbResult[i][j][k].week+'<br>');
+                    document.getElementsByClassName('schedule')[j+i*7].innerHTML += (kbResult[i][j][k].teacher + '<br>');
+                    document.getElementsByClassName('schedule')[j+i*7].innerHTML += (kbResult[i][j][k].room + '<br>');
+                }
+            }
+        }
+
+    }
+    function countArray(o){
+        var t = typeof o;
+        if(t == 'string'){
+            return o.length;
+        }else if(t == 'object'){
+            var n = 0;
+            for(var i in o){
+                n++;
+            }
+            return n;
+        }
+        return false;
+    }
+    function weeks() { //计算当前时间周数  school是开学时间
+        let schoolDate = '2018/08/27 00:00:00';
+        let dateBegin = new Date(schoolDate);//转化为Date对象的形式
+        let dateEnd = new Date();
+        let between = dateEnd.getTime()-dateBegin.getTime();
+        let week = Math.ceil(Math.ceil(between/(24*3600*1000)/7))
+        if(week<0 || week>20){  //计算中间时间
+            document.getElementsByClassName('schedule-content')[0].innerHTML = '';
+            document.getElementsByClassName('schedule-content')[0].innerHTML = '假期';
+        } else {
+            document.getElementsByClassName('schedule-content')[0].innerHTML = '';
+            document.getElementsByClassName('schedule-content')[0].innerHTML = '第'+ week + '周';
+        }
+    }
+</script>
+<script type="text/javascript" src="../../../static/index/jquery.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="../../../static/index/light7/dist/js/light7.min.js" charset="utf-8"></script>
+</body>
+</html>
