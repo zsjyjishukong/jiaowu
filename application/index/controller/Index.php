@@ -8,6 +8,7 @@ class Index
 {
     public $jws_host = 'http://jws.hebiace.edu.cn';
 
+
     public function __construct() { //构造函数
         if (Session::get('openid')){
 
@@ -49,7 +50,16 @@ class Index
     }
 
     public function insertToStudent ($jwid, $jwpwd) {
+        $openid = Session::get('openid');
         $data = ['jwid'=> $jwid, 'jwpwd'=>$jwpwd,'openid'=>Session::get('openid')];
+        if(Db::name('tbl_user')->where('openid',$openid)->find()){
+            return json(
+                array(
+                    'code'=>1,
+                    'msg'=>'该用户已存在'
+                )
+            );
+        }
         if (Db::name('tbl_user')
             ->data($data)
             ->insert()) {
@@ -85,56 +95,82 @@ class Index
     public function selectSchedule($xuenian=false,$xueqi=false){
         $cookie = Session::get('cookie');
         $studentId = Session::get('student_id');
-        //模拟请求抓取默认课表
-        $ch=curl_init("http://jws.hebiace.edu.cn/tjkbcx.aspx?xh={$studentId}");
-        curl_setopt($ch, CURLOPT_TIMEOUT,60);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_REFERER,"http://jws.hebiace.edu.cn/xs_main.aspx?xh={$studentId}");
-        curl_setopt($ch, CURLOPT_COOKIE, $cookie);
-        $str=curl_exec($ch);
-        curl_close($ch);
-        $str=mb_convert_encoding($str, "utf-8", "gb2312");//转换为utf-8格式
-        preg_match('/selected" value="[0-9]{10,}-[0-9]{10,}">(.*[0-9]{3,4})<\/option>/u',$str,$result);//正则匹配班级
-//        print_r($result);
-        $banji=$result[1];
-        $pattern = '/<option selected="selected" value="(.*?)">/i';
-        preg_match_all($pattern,$str,$result);//正则form信息，准备进行按学期查询
-        $xn = $result[1][0];
-        $xq = $result[1][1];
-        $nj = $result[1][2];
-        $xy = $result[1][3];
-        $zy = $result[1][4];
-        $kb = $result[1][5];
-        $pattern = '/<input type="hidden" name="__VIEWSTATE" value="(.*)" \/>/i';
-        preg_match($pattern, $str, $matches);
-        $result['view'] = urlencode($matches[1]);
-        $view = $result['view'];
-        Session::set('xn',$xn);
-        Session::set('xq',$xq);
-        Session::set('nj',$nj);
-        Session::set('xy',$xy);
-        Session::set('zy',$zy);
-        Session::set('kb',$kb);
-        Session::set('banji',$banji);
-        Session::set('view', $view);
+        $str = '';
+        $http_code = 0;
         $code = 0;
         $error = "";
         $all = array();
-        if($xuenian && $xueqi) {
+        $returnData = array();
+        if (!($xuenian&&$xueqi)) {
+            //模拟请求抓取默认课表
+            $ch=curl_init("http://jws.hebiace.edu.cn/tjkbcx.aspx?xh={$studentId}");
+            curl_setopt($ch,CURLOPT_REFERER,"http://jws.hebiace.edu.cn/xs_main.aspx?xh={$studentId}");
+            curl_setopt($ch, CURLOPT_COOKIE, $cookie);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            $str=curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            $str=mb_convert_encoding($str, "utf-8", "gb2312");//转换为utf-8格式
+            preg_match('/selected" value="[0-9]{10,}-[0-9]{10,}">(.*[0-9]{3,4})<\/option>/u',$str,$result);//正则匹配班级
+            if (isset($result[1])) {
+                $banji=$result[1];
+                $pattern = '/<option selected="selected" value="(.*?)">/i';
+                preg_match_all($pattern,$str,$result);//正则form信息，准备进行按学期查询
+                $xn = $result[1][0];
+                $xq = $result[1][1];
+                $nj = $result[1][2];
+                $xy = $result[1][3];
+                $zy = $result[1][4];
+                $kb = $result[1][5];
+                $pattern = '/<input type="hidden" name="__VIEWSTATE" value="(.*)" \/>/i';
+                preg_match($pattern, $str, $matches);
+                $result['view'] = urlencode($matches[1]);
+                $view = $result['view'];
+                Session::set('xn',$xn);
+                Session::set('xq',$xq);
+                Session::set('nj',$nj);
+                Session::set('xy',$xy);
+                Session::set('zy',$zy);
+                Session::set('kb',$kb);
+                Session::set('banji',$banji);
+                Session::set('view', $view);
+            } else {
+                $code = 1;
+                $error = '未匹配到班级';
+                $all = '';
+                $returnData = array(
+                    'code'=>$code,
+                    'msg'=>$error,
+                    'data'=>array(
+                        'xn'=>Session::get('xn'),
+                        'xq'=>Session::get('xq'),
+                        'bj'=>Session::get('banji'),
+                        'data'=>$all
+                    )
+                );
+                return $returnData;
+            }
+        }
+        if($xuenian&&$xueqi) {
             $studentId = Session::get('student_id');
+            $view = Session::get('view');
+            $nj = Session::get('nj');
+            $xy = Session::get('xy');
+            $zy = Session::get('zy');
+            $kb = Session::get('kb');
             Session::set('xn', $xuenian);
             Session::set('xq', $xueqi);
             $url = $this->jws_host . "/tjkbcx.aspx?xh=$studentId";
-            $refUrl = $this->jws_host . "/default2.aspx";
+            $refUrl = $this->jws_host . "http://jws.hebiace.edu.cn/xs_main.aspx?xh={$studentId}";
             $cookie = Session::get('cookie');
             $post = '__VIEWSTATE=' . $view . "&xn=" . $xuenian . "&xq=" . $xueqi . "&nj=" . $nj . "&xy=" . $xy . "&zy=" . $zy . "&kb=" . $kb;
             //模拟请求抓取特定学年学期课表
             $header = array(
-                'Content-Type: application/x-www-form-urlencoded',
                 'Host: jws.hebiace.edu.cn',
                 'Origin: http://jws.hebiace.edu.cn'
             );
             $str = $this->curl_post($url, $cookie, $refUrl, $post, $header);
+            $http_code = $str['http_code'];
             $str = $str['str'];
             $isError = preg_match("/alert\('(.*?)'\);/iU", $str, $error);
             if ($isError) {
@@ -146,10 +182,11 @@ class Index
             $str = $this->getShort($str);//对过长的一些信息简化
             $all = $this->getKbArray($str);
         }
-
         $returnData = array(
             'code'=>$code,
             'msg'=>$error,
+            'str' =>$str,
+            'http_code' => $http_code,
             'data'=>array(
                 'xn'=>Session::get('xn'),
                 'xq'=>Session::get('xq'),
@@ -183,6 +220,7 @@ class Index
 
         $table = explode('{tr}', $table);
         array_pop($table);//PHP开源代码
+        $td_array = array();
         foreach ($table as $key => $tr) {
             $td = explode('{td}', $tr);
             $td = explode('{td}', $tr);
@@ -261,7 +299,7 @@ class Index
     public function login($studentId=false, $password=false)
     {
         $code="";
-        if ($studentId ===false || $password === false) {
+        if ($studentId === false || $password === false) {
             $studentId = Session::get('student_id');
             $password = Session::get('password');
         }
@@ -322,7 +360,8 @@ class Index
                 array(
                     'code' => 0,
                     'msg' => '登录成功！',
-                    'errcode' => 0
+                    'errcode' => 0,
+                    'cookie'=>$cookie
                 )
             );
         } else {
@@ -354,7 +393,7 @@ class Index
             curl_setopt($ch, CURLOPT_POSTFIELDS,$post_data);
         }
         curl_setopt($ch, CURLOPT_USERAGENT,"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36");
-        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4 );#ǿ�� ipv4
+        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4 );#??? ipv4
         curl_setopt($ch, CURLOPT_HEADER, 1);
         curl_setopt($ch, CURLOPT_COOKIE, $cookie);
         if($header){

@@ -11,6 +11,9 @@
             font-size: 0.55rem;
             height: 5rem;
         }
+        .content{
+            overflow: hidden;
+        }
         .content-block table tr td,th{
             text-align: center;
             border: 1px solid #e7e7e7;
@@ -24,6 +27,9 @@
             width: 100%;
             border : 1px solid #e7e7e7;
             background: #ffffff;
+        }
+        .time{
+            font-size: 0.5rem;
         }
     </style>
 </head>
@@ -65,7 +71,7 @@
                 <th class="schedule-content">周日</th>
             </tr>
             <tr>
-                <td>1</td>
+                <td rowspan="2">1-2<br><span class="time">8:00</span></td>
                 <td class='schedule' rowspan="2"></td>
                 <td class='schedule' rowspan="2"></td>
                 <td class='schedule' rowspan="2"></td>
@@ -75,23 +81,9 @@
                 <td class='schedule' rowspan="2"></td>
             </tr>
             <tr>
-                <td>2</td>
             </tr>
             <tr>
-                <td>3</td>
-                <td class='schedule' rowspan="2"></td>
-                <td class='schedule' rowspan="2"></td>
-                <td class='schedule' rowspan="2"></td>
-                <td class='schedule' rowspan="2"></td>
-                <td class='schedule' rowspan="2"></td>
-                <td class='schedule' rowspan="2"></td>
-                <td class='schedule' rowspan="2"></td>
-            </tr>
-            <tr>
-                <td>4</td>
-            </tr>
-            <tr>
-                <td>5</td>
+                <td>3-4<br><span class="time">10:10</span> </td>
                 <td class='schedule' rowspan="2"></td>
                 <td class='schedule' rowspan="2"></td>
                 <td class='schedule' rowspan="2"></td>
@@ -101,10 +93,9 @@
                 <td class='schedule' rowspan="2"></td>
             </tr>
             <tr>
-                <td>6</td>
             </tr>
             <tr>
-                <td>7</td>
+                <td>5-6<br><span class="time">14:30</span> </td>
                 <td class='schedule' rowspan="2"></td>
                 <td class='schedule' rowspan="2"></td>
                 <td class='schedule' rowspan="2"></td>
@@ -114,7 +105,18 @@
                 <td class='schedule' rowspan="2"></td>
             </tr>
             <tr>
-                <td>8</td>
+            </tr>
+            <tr>
+                <td>7-8<br><span class="time">16:30</span> </td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+                <td class='schedule' rowspan="2"></td>
+            </tr>
+            <tr>
             </tr>
         </table>
     </div>
@@ -123,36 +125,44 @@
     let url = 'selectSchedule';
     let loginUrl = 'login'
     let xn,xq,newxn,newxq
-    function login(fun) {
+    function selectSchedule() {
+        $.showPreloader('正在查询课表，请稍候');
+        $.ajax({
+            type: "post",
+            url: url,
+            success: function (response) {
+                // console.log(response);
+                if (response.code === 0) {
+                    banji = response.data.bj;
+                    xn = response.data.xn
+                    xn = xn + '学年'
+                    xq = response.data.xq
+                    if (xq === 1) {
+                        xq = '第一学期'
+                    } else {
+                        xq = '第二学期'
+                    }
+                    document.getElementById('header-title').innerHTML = banji + "の课程表"
+                    document.getElementById('picker').value = xn + " " + xq
+                    kbToHtml(response.data.data)
+                } else {
+                    selectSchedule()
+                }
+            },
+            error: function (error) {
+                selectSchedule()
+            }
+        })
+    }
+
+    function login() {
+        $.showPreloader('登录教务系统中……');
         $.ajax({
             type: 'get',
             url: loginUrl,
             success: function (response) {
                 if(response.code === 0){
-                    $.ajax({
-                        type: "post",
-                        url: url,
-                        success: function (response) {
-                            // console.log(response);
-                            if (response.code === 0) {
-                                banji = response.data.bj;
-                                xn = response.data.xn
-                                xn = xn + '学年'
-                                xq = response.data.xq
-                                if (xq === 1) {
-                                    xq = '第一学期'
-                                } else {
-                                    xq = '第二学期'
-                                }
-                                document.getElementById('header-title').innerHTML = banji + "の课程表";
-                                document.getElementById('picker').value = xn + " " + xq
-                                kbToHtml(response.data.data)
-                            }
-                        },
-                        error: function (error) {
-                            login();
-                        }
-                    })
+                   selectSchedule()
                 } else {
                     login();
                 }
@@ -163,6 +173,7 @@
         })
     }
     function getJwid () {
+        $.showPreloader('获取用户信息中……');
         $.ajax({
             type: "post",
             url: 'getJwid',
@@ -170,7 +181,6 @@
                 console.log(response);
                 if (response.code === 0) {
                     login()
-                    weeks()
                 } else {
                     $.toast('尚未绑定，正在前往绑定页面');
                     setTimeout(function () {
@@ -184,6 +194,7 @@
         })
     }
     window.onload = function () {
+        $.showPreloader('正在查询课表，请稍候');
         getJwid();
         $("#picker").picker({
             toolbarTemplate: '<header class="bar bar-nav">\
@@ -202,7 +213,7 @@
                 }
             ]
         })
-
+        weeks()
     }
     function change() {
         if(document.getElementById('choose').style.display != 'none' ){
@@ -213,35 +224,40 @@
             if(newxn != xn || newxq != xq) {
                 newxn = newdata[0].split('学年')[0];
                 newxq = (newdata[1] === '第一学期' ? 1 : 2);
-                $.ajax({
-                    type: "get",
-                    url: url+'/xuenian/'+newxn+'/xueqi/'+newxq,
-                    success: function (response) {
-                        console.log(response);
-                        if (response.code === 0){
-                            banji = response.data.bj;
-                            xn = response.data.xn;
-                            xn = xn + '学年';
-                            xq = response.data.xq === 1 ? '第一学期' : '第二学期';
-                            document.getElementById('header-title').innerHTML = banji+"の课程表";
-                            document.getElementById('picker').value = xn+xq
-                            kbToHtml(response.data.data)
-                        } else {
-                            $.alert(response.msg)
-                        }
-                    },
-                    error: function (error) {
-                        $.alert(error);
-                    }
-                })
+                changeSelect(newxn, newxq)
             }
-            // document.getElementById('choose').style.display = 'none'
             $("#choose").fadeOut("slow");
         } else {
             $("#choose").fadeIn("slow")
         }
     }
+    function changeSelect(xuenian, xueqi) {
+        $.ajax({
+            type: "get",
+            url: url+'/xuenian/'+newxn+'/xueqi/'+newxq,
+            success: function (response) {
+                console.log(response);
+                if (response.code === 0 && response.http_code === 200){
+                    banji = response.data.bj;
+                    xn = response.data.xn;
+                    xn = xn + '学年';
+                    xq = response.data.xq === "1" ? '第一学期' : '第二学期';
+                    document.getElementById('header-title').innerHTML = banji+"の课程表";
+                    document.getElementById('picker').innerHTML = xn+xq
+                    kbToHtml(response.data.data)
+                } else if(response.code === 0 && response.http_code === 302){
+                    changeSelect(newxn, newxq)
+                } else {
+                    $.alert(response.msg)
+                }
+            },
+            error: function (error) {
+                $.alert(error);
+            }
+        })
+    }
     function kbToHtml(kb) {
+        $.hidePreloader();
         let kbUseable = new Array();//源课程数据
         let kbExplode = new Array();//一次处理数据
         let kbResult = new Array();
@@ -325,7 +341,7 @@
         let dateEnd = new Date();
         let between = dateEnd.getTime()-dateBegin.getTime();
         let week = Math.ceil(Math.ceil(between/(24*3600*1000)/7))
-        if(week<0 || week>20){  //计算中间时间
+        if(week<1 || week>20){  //计算中间时间
             document.getElementsByClassName('schedule-content')[0].innerHTML = '';
             document.getElementsByClassName('schedule-content')[0].innerHTML = '假期';
         } else {
