@@ -143,8 +143,8 @@
                         xq = '第二学期'
                     }
                     document.getElementById('header-title').innerHTML = banji + "の课程表"
-                    document.getElementById('picker').value = xn + " " + xq
-                    kbToHtml(response.data.data)
+                    document.getElementById('picker').value = '2018-2019学年 第一学期'
+                    changeSelect(2018-2019,1);
                 } else {
                     selectSchedule()
                 }
@@ -224,6 +224,7 @@
             if(newxn != xn || newxq != xq) {
                 newxn = newdata[0].split('学年')[0];
                 newxq = (newdata[1] === '第一学期' ? 1 : 2);
+                 $.showPreloader('正在查询课表，请稍候');
                 changeSelect(newxn, newxq)
             }
             $("#choose").fadeOut("slow");
