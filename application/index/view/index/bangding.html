@@ -43,10 +43,34 @@
             <div class="col-50"><a onclick="submitit()" class="button button-big button-fill button-success">确认</a></div>
             <div class="col-50"><a onclick="forget()" class="button button-big button-fill button-danger">忘记密码</a></div>
         </div>
+        <br><br><br>
+        <p style="text-align: center;font-size: smaller">
+            Copyright © 新媒体工作室  技术支持<br><br>
+            掌上建院  建院自主数字化服务系统引领者
+        </p>
     </div>
 </div>
 <script>
     let n = 1;
+    window.onload = function () {
+        $.ajax({
+            type: "post",
+            url: 'getJwid',
+            success: function (response) {
+                if (response.code === 0) {
+                    $.toast('您已绑定，无需重复绑定');
+                    setTimeout(function () {
+                        window.location.href="schedule";
+                    },1000)
+                } else {
+
+                }
+            },
+            error: function (error) {
+                $.alert('请检查网络')
+            }
+        })
+    }
     function forget() {
         $.alert("忘记密码请与教务处联系！ 教务处地址：行政楼A109");
     }

@@ -9,14 +9,14 @@ class Index
     public $jws_host = 'http://jws.hebiace.edu.cn';
 
 
-    public function __construct() { //构造函数
-        if (Session::get('openid')){
-
-        } else {
-            $action = request()->action();
-            $this->getUserInfo($action);
-        }
-    }
+//    public function __construct() { //构造函数
+//        if (Session::get('openid')){
+//
+//        } else {
+//            $action = request()->action();
+//            $this->getUserInfo($action);
+//        }
+//    }
 
     private function getUserInfo($action){
         if (@Session::get('openid')){
