@@ -9,14 +9,14 @@ class Index
     public $jws_host = 'http://jws.hebiace.edu.cn';
 
 
-//    public function __construct() { //构造函数
-//        if (Session::get('openid')){
-//
-//        } else {
-//            $action = request()->action();
-//            $this->getUserInfo($action);
-//        }
-//    }
+    public function __construct() { //构造函数
+        if (Session::get('openid')){
+
+        } else {
+            $action = request()->action();
+            $this->getUserInfo($action);
+        }
+    }
 
     private function getUserInfo($action){
         if (@Session::get('openid')){
@@ -34,7 +34,7 @@ class Index
         $a = Db::name('tbl_user')->where('openid',$openid)->find();
         if (isset($a['jwid'])) {
             Session::set('student_id', $a['jwid']);
-            Session::set('password', $a['jwpwd']);
+            Session::set('password', urlencode($a['jwpwd']));
             return array(
                 'code'=>0,
                 'msg'=>'已绑定',
@@ -51,7 +51,7 @@ class Index
 
     public function insertToStudent ($jwid, $jwpwd) {
         $openid = Session::get('openid');
-        $data = ['jwid'=> $jwid, 'jwpwd'=>$jwpwd,'openid'=>Session::get('openid')];
+        $data = ['jwid'=> $jwid, 'jwpwd'=>urldecode($jwpwd),'openid'=>Session::get('openid')];
         if(Db::name('tbl_user')->where('openid',$openid)->find()){
             return json(
                 array(
@@ -303,6 +303,7 @@ class Index
             $studentId = Session::get('student_id');
             $password = Session::get('password');
         }
+        $password = urlencode($password);
         $viewAndCookie = $this->getViewAndCookie();
         $view = $viewAndCookie['view'];
         $cookie = $viewAndCookie['cookie'];
