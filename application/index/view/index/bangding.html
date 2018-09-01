@@ -124,6 +124,9 @@
                     if(response.msg[1] === "密码错误，如忘记密码，请与教务处联系!"){
                         n = 0;
                         $.alert('密码错误，请确认密码！');
+                    } else if (response.msg[1] === "用户名不存在或未按照要求参加教学活动！！") {
+                        n = 0;
+                        $.alert('学号错误或者您是新生<br>新生暂时不可用本系统！')
                     }
                     else{
                         submitit(response.msg[1]);
