@@ -8,7 +8,6 @@ class Index
 {
     public $jws_host = 'http://jws.hebiace.edu.cn';
 
-
     public function __construct() { //构造函数
         if (Session::get('openid')){
 
@@ -16,6 +15,100 @@ class Index
             $action = request()->action();
             $this->getUserInfo($action);
         }
+    }
+
+    public function score() {
+        return view();
+    }
+
+    public function getScore() {
+        $jws_host = $this->jws_host;
+        $jwid = Session::get('student_id');
+        $cookie = Session::get('cookie');
+        $score_url = $jws_host."/xscjcx.aspx?xh=".$jwid."&xm=%C6%EB%EA%BB%D3%EE&gnmkdm=N121605";
+        $refereUrl = $jws_host."/xs_main.aspx?xh=".$jwid;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL,$score_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_USERAGENT,"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36");
+        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4 );
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_COOKIE, $cookie);
+        curl_setopt($ch, CURLOPT_REFERER, $refereUrl);
+        $viewstate=curl_exec($ch);
+        curl_close($ch);
+        preg_match_all('/<input type="hidden" name="__VIEWSTATE" value="([^<>]+)" \/>/', $viewstate, $vs);
+        $view = $vs[1][0];
+        $url = "http://jws.hebiace.edu.cn/xscjcx.aspx?xh={$jwid}&xm=%C6%EB%EA%BB%D3%EE&gnmkdm=N121605";
+        $refereUrl=$url;
+        $score=array(
+            '__EVENTTARGET'=>'',
+            '__EVENTARGUMENT'=>'',
+            '__VIEWSTATE'=> $view,
+            'hidLanguage'=>'',
+            'ddlXN'=>'',
+            'ddlXQ'=>'',
+            'ddl_kcxz'=>'',
+            'btn_zcj'=> iconv('utf-8', 'gb2312', '历年成绩')
+        );
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS,$score);
+        curl_setopt($ch, CURLOPT_USERAGENT,"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36");
+        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4 );#ǿ�� ipv4
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_COOKIE, $cookie);
+        curl_setopt($ch,CURLOPT_HTTPHEADER,array('Origin:'.$jws_host));
+        curl_setopt($ch, CURLOPT_REFERER, $refereUrl);
+        $str=curl_exec($ch);
+        curl_close($ch);
+        $str=mb_convert_encoding($str, "utf-8", "gb2312");
+        $cj=$this->get_td_array($str);
+        return json($cj);
+    }
+
+    private function formatStrToArray($str){
+        $cj = $this->get_td_array($str);
+        print_r($cj);
+        $pattern2 = '/[\S][\S]：([\S]*?)</i';
+        preg_match_all($pattern2, $str, $matches2);
+        print_r($matches2);
+        $name = $matches2[1][1];//姓名
+        $result = array (
+            "name" => $name,
+            "score" => $cj
+        );
+        return $result;
+    }
+
+    private function get_td_array($table) {
+        $table = preg_replace("/<table[^>]*?>/is","",$table);
+        $table = preg_replace("/<tr[^>]*?>/si","",$table);
+        $table = preg_replace("/<td[^>]*?>/si","",$table);
+        $table = str_replace("</tr>","{tr}",$table);
+        $table = str_replace("</td>","{td}",$table);
+        $table = str_replace("<br><br>","\n\n",$table);
+        $table = str_replace("<br>","\n",$table);
+        //去掉 HTML 标记
+        $table = preg_replace("'<[/!]*?[^<>]*?>'si","",$table);
+        //去掉空白字符
+        $table = preg_replace("'([rn])[s]+'","",$table);
+        $table = str_replace(" ","",$table);
+        $table = str_replace(" ","",$table);
+        $table = str_replace("&nbsp;","",$table);
+
+        $table = explode('{tr}', $table);
+        array_pop($table);
+        $td_array=array();
+        foreach ($table as $key=>$tr) {
+            $td = explode('{td}', $tr);
+            $td = explode('{td}', $tr);
+            array_pop($td);
+            $td_array[] = $td;
+        }
+        return $td_array;
     }
 
     private function getUserInfo($action){
@@ -250,10 +343,6 @@ class Index
         return $format_content;
     }
 
-    public function getScore(){
-        $cookie = Session::get('cookie');
-        echo $cookie;
-    }
 
     /**
      * @param $srcFile 需要转换的图的原地址
@@ -385,7 +474,7 @@ class Index
      * @param $header 需要带的header
      * @return array 返回请求后的网页数据以及请求的状态码
      */
-    private function curl_post($url,$cookie,$refereUrl=false,$post_data = false,$header){
+    private function curl_post($url,$cookie,$refereUrl=false,$post_data = false,$header=false){
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL,$url);
         curl_setopt($ch, CURLOPT_POST, 1);
@@ -481,6 +570,7 @@ class Index
      */
     private function getViewAndCookie(){
         $result = array();
+        $startTime = time();
         $ch = curl_init($this->jws_host."/default2.aspx");
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_HEADER, 1);

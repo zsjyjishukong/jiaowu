@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+    <link rel="stylesheet" href="../../../static/index/light7/dist/css/light7.min.css"/>
+    <title>掌上建院--成绩查询</title>
+</head>
+<body>
+<div id="page">
+    <header class="bar bar-nav">
+        <button class="button pull-right" onclick="change()">
+            …
+        </button>
+        <h1 class="title">成绩查询</h1>
+    </header>
+    <div class="content">
+        <div class="content-block" id="choose" style="margin: -1rem 0;display: none;">
+            <div class="list-block">
+                <ul>
+                    <li>
+                        <div class="item-content">
+                            <div class="item-inner">
+                                <div class="item-title label">选择学期</div>
+                                <div class="item-input">
+                                    <input type="text" placeholder="选择学期" id="picker" readonly="" value="2017-2018学年 第二学期">
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="content-block grid-demo" style="margin: 0.5rem 0;">
+            <div class="row" style="margin: 0.6rem 0;">
+                <div class="col-50 color-success name" style="text-align: center;font-size: 0.7rem;">请等待……</div>
+                <div class="col-50 color-success GPA" style="text-align: center;font-size: 0.7rem;">请等待…… <img src="../../../static/img/wh.png"  width=15px height=15px onclick="function f() {
+                  $.alert('绩点是由公式：绩点=∑（学分*绩点）/∑学分<br>计算而得，不含公共任意选修课，仅供参考！');
+                }"/></div>
+            </div>
+        </div>
+        <div class="row content-block" style="font-size: 0.6rem;padding: 0.3rem 0; background: #EBFAFF;margin-bottom: 0;margin-top: 0.5rem;">
+            <div class="col-40 text-center">课程</div>
+            <div class="col-15 text-center">学分</div>
+            <div class="col-15 text-center">平时</div>
+            <div class="col-15 text-center">期末</div>
+            <div class="col-15 text-center">总成绩</div>
+        </div>
+        <div class="score">
+        </div>
+    </div>
+</div>
+<script>
+    let loginUrl = 'login'
+    function login() {
+        $.showPreloader('登录教务系统中……');
+        $.ajax({
+            type: 'get',
+            url: loginUrl,
+            success: function (response) {
+                if(response.code === 0){
+                    getScore()
+                } else if(response.msg[1] === "密码错误，如忘记密码，请与教务处联系!") {
+                    $.alert('密码错误，请重新绑定系统');
+                } else {
+                    login();
+                }
+            },
+            error: function () {
+                login();
+            }
+        })
+    }
+    function getJwid () {
+        $.showPreloader('获取用户信息中……');
+        $.ajax({
+            type: "post",
+            url: 'getJwid',
+            success: function (response) {
+                console.log(response);
+                if (response.code === 0) {
+                    login()
+                } else {
+                    $.toast('尚未绑定，正在前往绑定页面');
+                    setTimeout(function () {
+                        window.location.href="bangding";
+                    },1000)
+                }
+            },
+            error: function (error) {
+                $.alert('请检查网络')
+            }
+        })
+    }
+    function getScore(){
+        $.showPreloader('正在查询成绩，请稍候……');
+        $.ajax({
+            url: 'getScore',
+            method: 'post',
+            success: function (response) {
+                console.log(response)
+                xm = response[1][1]
+                document.getElementsByClassName('name')[0].innerHTML = xm
+                saveScore(response)
+                allXn = Array();
+                let i = 0;
+                for (; i<scores.length;i++){
+                    if (allXn.indexOf(scores[i][0]+'学年')===-1) {
+                        allXn.push(scores[i][0]+'学年')
+                    }
+                }
+                // console.log(allXn)
+                chooseCom()
+            },
+            error: function (error) {
+                if (error.status === 500) {
+                    getScore()
+                } else {
+                    alert('出现错误')
+                }
+
+            }
+        })
+    }
+    function saveScore (obj) {
+        scores = Array();
+        let num = 0
+        for(let i = 5;obj[i].length === 19;i++){
+            let xn = obj[i][0].trim();
+            let xq = obj[i][1].trim();
+            let className = obj[i][3].trim();
+            let credit = obj[i][6].trim();
+            let peaceTime = obj[i][8].trim();
+            let endTime = obj[i][10].trim();
+            let allScore = obj[i][12].trim()
+            let type = (obj[i][4].trim()==='必修课'?1:(obj[i][4].trim()==='任选课'?2:0)) //必修课为1 任选课为2 公共任意选修课我0
+            let tmp = [xn,xq,className,credit,peaceTime,endTime,allScore,type]
+            scores.push(tmp)
+            changeSelect('2017-2018', '2')
+        }
+    }
+    function chooseCom() {
+        $("#picker").picker({
+            toolbarTemplate: '<header class="bar bar-nav">\
+                                  <button class="button button-link pull-right close-picker" onclick="change()">确定</button>\
+                                  <h1 class="title">请选择学年学期</h1>\
+                                 </header>',
+            cols: [
+                {
+                    textAlign: 'center',
+                    values: allXn
+                    //如果你希望显示文案和实际值不同，可以在这里加一个displayValues: [.....]
+                },
+                {
+                    textAlign: 'center',
+                    values: ['第一学期', '第二学期']
+                }
+            ]
+        })
+    }
+    function change() {
+        if(document.getElementById('choose').style.display != 'none' ){
+            let newdata = document.getElementById('picker').value;
+            newdata = newdata.split(' ');
+            let newxn = newdata[0].split('学年')[0];
+            let newxq = (newdata[1] === '第一学期' ? '1' : '2');
+            $.showPreloader('正在查询，请稍候');
+            changeSelect(newxn, newxq)
+            $("#choose").fadeOut("slow");
+        } else {
+            $("#choose").fadeIn("slow")
+        }
+    }
+    function cut(string) {
+        if(string.length>11){
+            string = string.substring(0,9)
+            string = string + '…'
+        }
+        return string;
+    }
+    function GPAP(jidian, credit, type) {
+        if (type === 1 ||type === 2) {
+            gpap += ((jidian-60)/10+1)*credit
+            creditp += parseFloat(credit)
+        }
+
+        return jidian;
+    }
+    function changeSelect(xn, xq) {
+        document.getElementsByClassName('score')[0].innerHTML ="";
+        gpa = 0
+        gpap = 0
+        creditp = 0;
+        for(let i=0;i<scores.length;i++) {
+            if(scores[i][0]===xn && scores[i][1] === xq) {
+                document.getElementsByClassName('score')[0].innerHTML+=
+                    '<div class="row" style="font-size: 0.6rem;padding: 0.3rem 0;background: #fff;border-bottom: 0.5px #ccc solid">\n' +
+                        '<div class="col-40 text-center">'+cut(scores[i][2])+'</div>\n' +
+                        '<div class="col-15 text-center">'+scores[i][3]+'</div>\n' +
+                        '<div class="col-15 text-center">'+nullToNull(scores[i][4])+'</div>\n' +
+                        '<div class="col-15 text-center">'+nullToNull(scores[i][5])+'</div>\n' +
+                        '<div class="col-15 text-center">'+GPAP(scores[i][6],scores[i][3],scores[i][7])+'</div>\n' +
+                    '</div>';
+            }
+        }
+        $.hidePreloader();
+        document.getElementsByClassName('GPA')[0].innerHTML = '绩点：' + (gpap/creditp).toFixed(1) + '<img src="../../../static/img/wh.png"  width=15px height=15px onclick="alertJidian()"/>'
+    }
+    function alertJidian(){
+           $.alert('绩点是由公式<br>绩点=∑（学分*绩点）/∑学分<br>计算而得，不含公共任意选修课，仅供参考！');
+    }
+    function nullToNull(string) {
+        if (string === '') {
+            return '无成绩'
+        } else {
+            return string
+        }
+    }
+    window.onload = function () {
+        getJwid();
+    }
+</script>
+<script type="text/javascript" src="../../../static/index/jquery.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="../../../static/index/light7/dist/js/light7.min.js" charset="utf-8"></script>
+</body>
+</html>
