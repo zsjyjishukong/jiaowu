@@ -5,6 +5,16 @@
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
     <link rel="stylesheet" href="../../../static/index/light7/dist/css/light7.min.css"/>
     <title>掌上建院--成绩查询</title>
+    <script>
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?d160c4736f9f2aa0acc8f42e46e261fa";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
 </head>
 <body>
 <div id="page">
@@ -180,8 +190,10 @@
     }
     function GPAP(jidian, credit, type) {
         if (type === 1 ||type === 2) {
-            gpap += ((jidian-60)/10+1)*credit
-            creditp += parseFloat(credit)
+            if (jidian>=60) {
+                gpap += ((jidian-60)/10+1)*credit
+                creditp += parseFloat(credit)
+            }
         }
 
         return jidian;
