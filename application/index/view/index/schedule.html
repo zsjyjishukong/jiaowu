@@ -153,7 +153,9 @@
                     }
                     document.getElementById('header-title').innerHTML = banji + "の课程表"
                     document.getElementById('picker').value = '2018-2019学年 第一学期'
-                    changeSelect(2018-2019,1);
+                    xn = '2018-2019学年'
+                    xq = '第一学期'
+                    changeSelect('2018-2019','1');
                 } else {
                     selectSchedule()
                 }
@@ -195,7 +197,7 @@
                 } else {
                     $.toast('尚未绑定，正在前往绑定页面');
                     setTimeout(function () {
-                        window.location.href="bangding";
+                        // window.location.href="bangding";
                     },1000)
                 }
             },
@@ -251,9 +253,9 @@
                 console.log(response);
                 if (response.code === 0 && response.http_code === 200){
                     banji = response.data.bj;
-                    xn = response.data.xn;
+                    xn = xuenian;
                     xn = xn + '学年';
-                    xq = response.data.xq === "1" ? '第一学期' : '第二学期';
+                    xq = (xueqi === "1" ? '第一学期' : '第二学期');
                     document.getElementById('header-title').innerHTML = banji+"の课程表";
                     document.getElementById('picker').innerHTML = xn+xq
                     kbToHtml(response.data.data)
