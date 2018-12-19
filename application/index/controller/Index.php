@@ -13,7 +13,7 @@ class Index
 
         } else {
             $action = request()->action();
-            $this->getUserInfo($action);
+            $this->getUserBase($action);
         }
     }
 
@@ -122,6 +122,16 @@ class Index
         }
     }
 
+    private function getUserBase($action){
+        if(Session::has('openid')){
+
+        }elseif (isset($_GET['openid'])){
+            Session::set('openid',$_GET['openid']);
+        }else{
+            header('Location: https://open.weixin.qq.com/connect/oauth2/authorize?appid=wxce1a3e7ad3e127ef&redirect_uri=http://m.hebiace.net/app/wxGetUserInfo/getUserBase.php?url=jws.hebiace.net/index/index/'.$action.'&response_type=code&scope=snsapi_base&state=STATE#wechat_redirect');
+        }
+    }
+
     public function getJwid(){
         $openid = Session::get('openid');
         $a = Db::name('tbl_user')->where('openid',$openid)->find();
@@ -144,7 +154,6 @@ class Index
 
     public function insertToStudent ($jwid, $jwpwd) {
         $openid = Session::get('openid');
-        $data = ['jwid'=> $jwid, 'jwpwd'=>urldecode($jwpwd),'openid'=>Session::get('openid')];
         if(Db::name('tbl_user')->where('openid',$openid)->find()){
             return json(
                 array(
@@ -153,6 +162,29 @@ class Index
                 )
             );
         }
+        $validate_user = Db::name('tbl_user') -> where('jwid',$jwid) -> find();
+        if($validate_user){
+            $data_update = [
+                'jwpwd' => urldecode($jwpwd),
+                'openid' => $openid
+            ];
+            if(!(Db::name('tbl_user') -> where('jwid',$jwid) -> update($data_update))){
+                return json(
+                    array(
+                        'code' => 1,
+                        'msg' => '未知错误，请联系管理员'
+                    )
+                );
+            }else{
+                return json(
+                    array(
+                        'code' => 0,
+                        'msg' => '修改成功'
+                    )
+                );
+            }
+        }
+        $data = ['jwid'=> $jwid, 'jwpwd'=>urldecode($jwpwd),'openid'=>Session::get('openid'),'time' => time()];
         if (Db::name('tbl_user')
             ->data($data)
             ->insert()) {
@@ -234,6 +266,7 @@ class Index
                 $returnData = array(
                     'code'=>$code,
                     'msg'=>$error,
+                    'http_code'=>$http_code,
                     'data'=>array(
                         'xn'=>Session::get('xn'),
                         'xq'=>Session::get('xq'),
@@ -584,5 +617,33 @@ class Index
         preg_match('/Set-Cookie:(.*);/iU', $str, $matches);
         $result['cookie'] = $matches[1];
         return $result;
+    }
+
+    public function isNewFans(){
+        $openid = Session::get('openid');
+        $a = Db::name('tbl_user')->where('openid',$openid)->find();
+        if (isset($a['jwid'])) {
+            $time = time();
+            $data = Db::name('tbl_user') -> where('time','>',$time) -> select();
+            if(!($data == [])){
+                return json(
+                    array(
+                        'code' => 1,
+                        'msg' => '未知错误，请联系管理员'
+                    )
+                );
+            }
+            return json(
+                array(
+                    'code' => 0,
+                    'data' => $data
+                )
+            );
+        } else {
+            return array(
+                'code'=>1,
+                'msg' =>'未绑定'
+            );
+        }
     }
 }
